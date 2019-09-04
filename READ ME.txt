@@ -1,0 +1,68 @@
+************************************************************
+*    Title: Vocal Cancellation by ADSP-21369
+*    Date: 28/08/2019
+*    Author: Jianming Wang Íõ½¡Ãû
+*    Target:   ADSP-21369
+*    Hardware: ADSP-21369 EZ-KIT LITE
+*    Language: C
+***************************************************************
+
+------------------------------------------------------------------------------------------------------------------------------------------
+Introduction:
+As more and more people perfer singing songs in their homes without Karaoke machine, the background music becoming more and more useful. Meanwhile, software which can cut the vocal voice and keep the background music as vocal accompaniment is popular.
+This project uses ADSP-21369 processor kit with C Language to reach the purpose that can cancel vocal voice.
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+Concepts:
+1. Use HPF(High Pass Filter) and LPF(Low Pass Filter) to find out vocal voice. The reason is that the vocal voice is usually between 300Hz and 3400Hz. However, the threshold is vary between songs, so the actual value depends on the later tests.
+2. Do subtraction between left channel and right channel to cut vocal voice. Because in most cases, the vocal sound has it own track that is added into music and is almost the same in both left and right channels. So subtraction can neutralize vocal voice to none, in theory...
+3. In most professional ways, firstly, developer will use HPF, and do the subtraction for the second step, and then use LPF.
+4. I found that one HPF and one LPF is not enough to clear the vocal voice. After testing, I use 6 HPFs and 6 LPFs to do the filtration. And the reduction effect is much better. Of course, the final output should use the message in the last HPF/LPF, the sixth ones.
+5. After cancellation, some of the Bass is lost, because vocal voice is closer to the bottom of the low frequency in some songs. To cancel vocal voice completely in each song, the lower threshold should be setted as 20Hz. The consequence is that you can only hear heavy bass and the music sounds uncomfortable.
+   To solve this problem, the compensation on low frequency(bass) is necessarily needed. 
+   The first idea is using previous LPFs for compensation. Such as "LPF6 + LPF5" so that the output will have some better sounds. The more previous LPF have been used, the clearer bass you can hear, but the vocal voice will become clearer, too. Coefficient can also be added and I would like to use 0.707, which stands for -3dB. For example, "lp6.out + 0.707*lp5.out + 0.5*lp4.out + 0.25*lp3.out + 0.0625*lp2.out". I don't want to use LPF1 because it contains too much vocal voice.
+   Another way is using convolutional calculation to do the compensation. I tried but failed.Seems that the convolution functions will affect the cancellation. I have no idea about it.
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+Files:
+main.c - Initialize functions & start processing.
+vocalCancel.c - Main function of HPFs and LPFs. Initialize HPFs/LPFs & define the highpass/lowpass procedure, then output.
+blockProcess - Main process of vocal cancellation. Define the algorithm of channel subtraction. Exchange Fixed value and Float value.
+DSP_highpass.c - Define initialization function for HPF. Define HPF algorithm.
+DSP_lowpass.c - Define initialization function for LPF. Define LPF algorithm.
+convolution.c - Convolutional function. (not done yet)
+DSP.h - Header file for "vocalCancel.c". The bandwidth of HPF/LPF can be altered here.
+DSP_highpass.h - Header file for HPF.
+DSP_lowpass.h - Header file for LPF.
+convolution.h - Header file for convolution function. (not done yet)
+
+(files below are the demo files that given by Analog Devices, Inc. in "C Block-based talkthrough" example)
+init1835viaSPI.c
+initPLL_SDRAM.c
+initSPORT.c
+initSRU.c
+IRQprocess.c
+SPORTisr.c
+ad1835.h
+tt.h
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+References:  [1] GitHub User @adsp-21369-reverb, "VisualDSP-Echo"
+             [2] Analog Devices, Inc. "C Block-based talkthrough" Example
+
+
+Improvements: After Debugging, I found that the reference has a mistake, which reverse leftChannel and rightChannel. 
+              In a word, left is right and right is left. So I correct it by putting the first parameter as rightChannel and the second parameter as leftChannel in the function.
+
+
+
+
+Conclusion: The project is not perfect! But at least it works, and you will find it very interesting that the vocal voice in your songs become blur. And you will realize that the performance of the cancellation function is different in each song.
+            I hope this project is useful for someone who need it. I am willing that someone can improve it in the future.
+            Thank you for reading this!
